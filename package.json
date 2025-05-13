@@ -1,6 +1,6 @@
 {
   "name": "@jkrmarmol/react-native-collapsible",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "A simple and customizable React Native component for collapsible content, supporting smooth expand/collapse animations and accordion behavior.",
   "main": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",
