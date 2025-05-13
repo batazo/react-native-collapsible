@@ -131,7 +131,8 @@ export const Collapsible: React.FC<CollapsibleProps> = (props) => {
           callback(collapsedHeight);
           return;
         }
-        node.measure?.((x, y, width, height) => {
+
+        node.measure?.((_x, _y, _width, height) => {
           setMeasuring(false);
           setMeasured(true);
           setContentHeight(height);
