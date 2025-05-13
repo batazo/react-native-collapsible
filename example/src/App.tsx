@@ -1,20 +1,26 @@
-import { Text, View, StyleSheet } from 'react-native';
-import { multiply } from '@jkrmarmol/react-native-collapsible';
+import { Text, SafeAreaView, Button, StyleSheet } from 'react-native';
+import { Collapsible } from '@jkrmarmol/react-native-collapsible';
+import { useState } from 'react';
 
-const result = multiply(3, 7);
+export default function App(this: any) {
+  const [collapsed, setCollapsed] = useState(true);
 
-export default function App() {
   return (
-    <View style={styles.container}>
-      <Text>Result: {result}</Text>
-    </View>
+    <SafeAreaView style={styles.container}>
+      <Button title="Toggle" onPress={() => setCollapsed(!collapsed)} />
+      <Collapsible collapsed={collapsed} duration={300}>
+        <Text>
+          Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla at mi
+          nibh. Aenean id suscipit urna.
+        </Text>
+      </Collapsible>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    marginTop: 50,
   },
 });
