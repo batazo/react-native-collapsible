@@ -47,14 +47,14 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jkrmarmol/@jkrmarmol/react-native-collapsible.git"
+    "url": "git+https://github.com/jkrmarmol/react-native-collapsible.git"
   },
   "author": "Kurt Russelle Marmol <jkurtrussellemarmol@gmail.com> (https://github.com/jkrmarmol)",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/jkrmarmol/@jkrmarmol/react-native-collapsible/issues"
+    "url": "https://github.com/jkrmarmol/react-native-collapsible/issues"
   },
-  "homepage": "https://github.com/jkrmarmol/@jkrmarmol/react-native-collapsible#readme",
+  "homepage": "https://github.com/jkrmarmol/react-native-collapsible#readme",
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"
   },
