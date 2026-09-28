@@ -29,6 +29,8 @@ interface CollapsibleProps {
   renderChildrenCollapsed?: boolean;
   style?: StyleProp<ViewStyle>;
   children?: ReactNode;
+  name?: string;
+  logging?: boolean;
 }
 
 const defaultProps: Required<
@@ -42,6 +44,8 @@ const defaultProps: Required<
     | 'easing'
     | 'onAnimationEnd'
     | 'renderChildrenCollapsed'
+    | 'name'
+    | 'logging'
   >
 > = {
   align: 'top',
@@ -52,6 +56,8 @@ const defaultProps: Required<
   easing: 'easeOutCubic',
   onAnimationEnd: () => null,
   renderChildrenCollapsed: true,
+  name: 'N/A',
+  logging: false,
 };
 
 export const Collapsible: React.FC<CollapsibleProps> = (props) => {
@@ -64,6 +70,8 @@ export const Collapsible: React.FC<CollapsibleProps> = (props) => {
     enablePointerEvents,
     onAnimationEnd,
     renderChildrenCollapsed,
+    name,
+    logging,
     style,
     children,
   } = { ...defaultProps, ...props };
@@ -191,8 +199,17 @@ export const Collapsible: React.FC<CollapsibleProps> = (props) => {
   );
 
   useEffect(() => {
+    if (logging) {
+      console.log(`Collapsed (${name}) ::: ${collapsed}`);
+    }
     toggleCollapsed(collapsed);
-  }, [collapsed, toggleCollapsed]);
+  }, [collapsed, logging, name, toggleCollapsed]);
+
+  useEffect(() => {
+    if (logging) {
+      console.log(`Animating (${name}) ::: ${JSON.stringify(animating)}`);
+    }
+  }, [animating, logging, name]);
 
   useEffect(() => {
     return () => {
@@ -202,6 +219,9 @@ export const Collapsible: React.FC<CollapsibleProps> = (props) => {
 
   const handleLayout = (event: LayoutChangeEvent) => {
     const height = event.nativeEvent.layout.height;
+    if (logging) {
+      console.log(`Height (${name}) ::: ${height}`);
+    }
     if (animating || collapsed || measuring || contentHeight === height) {
       return;
     }
@@ -249,20 +269,32 @@ export const Collapsible: React.FC<CollapsibleProps> = (props) => {
       (animating || measuring || measured));
 
   return (
-    <Animated.View
-      style={containerStyle}
-      pointerEvents={!enablePointerEvents && collapsed ? 'none' : 'auto'}
-    >
+    <>
       <Animated.View
-        ref={(ref) => {
-          contentRef.current = ref as View | null;
-        }}
-        style={[style, animatedContentStyle]}
-        onLayout={!animating ? handleLayout : undefined}
+        style={containerStyle}
+        pointerEvents={!enablePointerEvents && collapsed ? 'none' : 'auto'}
       >
-        {shouldRenderChildren && children}
+        <Animated.View
+          ref={(ref) => {
+            contentRef.current = ref as View | null;
+          }}
+          style={[style, animatedContentStyle]}
+          onLayout={(event) => {
+            if (!animating) {
+              if (logging) {
+                console.log(`Layout click (${name})`);
+                console.log(
+                  `Layout height (${name}) ::: ${JSON.stringify(event?.nativeEvent?.layout?.height)}`
+                );
+              }
+              handleLayout(event);
+            }
+          }}
+        >
+          {shouldRenderChildren && children}
+        </Animated.View>
       </Animated.View>
-    </Animated.View>
+    </>
   );
 };
 
