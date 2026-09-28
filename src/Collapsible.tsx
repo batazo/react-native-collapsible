@@ -16,15 +16,16 @@ import {
 
 const ANIMATED_EASING_PREFIXES = ['easeInOut', 'easeOut', 'easeIn'] as const;
 
-type EasingString = keyof typeof Easing | string;
+export type EasingString = keyof typeof Easing | string;
+export type EasingMode = EasingString | ((value: number) => number);
 
-interface CollapsibleProps {
+export interface CollapsibleProps {
   align?: 'top' | 'center' | 'bottom';
   collapsed?: boolean;
   collapsedHeight?: number;
   enablePointerEvents?: boolean;
   duration?: number;
-  easing?: EasingString;
+  easing?: EasingMode;
   onAnimationEnd?: () => void;
   renderChildrenCollapsed?: boolean;
   style?: StyleProp<ViewStyle>;
@@ -60,6 +61,48 @@ const defaultProps: Required<
   logging: false,
 };
 
+export const getResolvedEasing = (
+  easingName?: EasingMode
+): ((value: number) => number) => {
+  if (typeof easingName === 'function') {
+    return easingName;
+  }
+
+  if (typeof easingName === 'string') {
+    for (const prefix of ANIMATED_EASING_PREFIXES) {
+      if (easingName.startsWith(prefix)) {
+        const mode = prefix.slice(4).toLowerCase();
+        const rawFunc = easingName.slice(prefix.length);
+        const func = rawFunc.charAt(0).toLowerCase() + rawFunc.slice(1);
+
+        const easingModeFunc = Easing[mode as keyof typeof Easing] as
+          | ((e: (v: number) => number) => (v: number) => number)
+          | undefined;
+        const targetEasing = (Easing[func as keyof typeof Easing] ||
+          Easing[rawFunc as keyof typeof Easing]) as
+          | ((v: number) => number)
+          | undefined;
+
+        if (
+          typeof easingModeFunc === 'function' &&
+          typeof targetEasing === 'function'
+        ) {
+          return easingModeFunc(targetEasing);
+        }
+      }
+    }
+
+    const directEasing = Easing[easingName as keyof typeof Easing] as
+      | ((v: number) => number)
+      | undefined;
+    if (typeof directEasing === 'function') {
+      return directEasing;
+    }
+  }
+
+  return Easing.ease;
+};
+
 export const Collapsible: React.FC<CollapsibleProps> = (props) => {
   const {
     align,
@@ -80,130 +123,117 @@ export const Collapsible: React.FC<CollapsibleProps> = (props) => {
   const [measured, setMeasured] = useState(false);
   const [contentHeight, setContentHeight] = useState(0);
   const [animating, setAnimating] = useState(false);
-  const heightAnim = useRef(new Animated.Value(collapsedHeight)).current;
+
+  const contentHeightRef = useRef(0);
+  const measuredRef = useRef(false);
+  const isFirstRender = useRef(true);
+  const heightAnim = useRef(
+    new Animated.Value(collapsed ? collapsedHeight : 0)
+  ).current;
   const contentRef = useRef<View | null>(null);
   const animationRef = useRef<Animated.CompositeAnimation | null>(null);
   const unmounted = useRef(false);
 
-  const getResolvedEasing = (
-    easingName: EasingString
-  ): ((value: number) => number) => {
-    if (typeof easingName === 'string') {
-      for (const prefix of ANIMATED_EASING_PREFIXES) {
-        if (easingName.startsWith(prefix)) {
-          const func = easingName.slice(prefix.length);
-          const resolvedFunc = Easing[func as keyof typeof Easing];
-          if (
-            Easing[prefix.slice(4).toLowerCase() as keyof typeof Easing] &&
-            resolvedFunc
-          ) {
-            const baseEasing =
-              Easing[prefix.slice(4).toLowerCase() as keyof typeof Easing];
-            if (typeof baseEasing === 'function' && resolvedFunc) {
-              if (
-                typeof baseEasing === 'function' &&
-                typeof resolvedFunc === 'function'
-              ) {
-                if (
-                  typeof baseEasing === 'function' &&
-                  typeof resolvedFunc === 'function'
-                ) {
-                  // @ts-ignore
-                  return baseEasing(resolvedFunc);
-                }
-                return Easing.ease;
-              }
-              return Easing.ease;
-            }
-            return Easing.ease;
-          }
-        }
-      }
-
-      const easingFunction = Easing[easingName as keyof typeof Easing];
-      return typeof easingFunction === 'function'
-        ? // @ts-ignore
-          (value: number) => easingFunction(value)
-        : Easing.ease;
-    }
-    return Easing.ease;
-  };
-
-  const measureContent = useCallback(
-    (callback: (height: number) => void) => {
-      setMeasuring(true);
-      requestAnimationFrame(() => {
-        const node = contentRef.current;
-        if (!node) {
-          setMeasuring(false);
-          callback(collapsedHeight);
-          return;
-        }
-
-        node.measure?.((_x, _y, _width, height) => {
-          setMeasuring(false);
-          setMeasured(true);
-          setContentHeight(height);
-          callback(height);
-        });
-      });
-    },
-    [collapsedHeight]
-  );
-
   const transitionToHeight = useCallback(
-    (targetHeight: number) => {
+    (targetHeight: number, shouldAnimate: boolean = true) => {
       if (animationRef.current) {
         animationRef.current.stop();
+        animationRef.current = null;
+      }
+
+      if (!shouldAnimate || duration === 0) {
+        heightAnim.setValue(targetHeight);
+        setAnimating(false);
+        onAnimationEnd?.();
+        return;
       }
 
       const easingFn = getResolvedEasing(easing);
       setAnimating(true);
 
-      animationRef.current = Animated.timing(heightAnim, {
+      const anim = Animated.timing(heightAnim, {
         toValue: targetHeight,
         duration,
         easing: easingFn,
         useNativeDriver: false,
       });
 
-      animationRef.current.start(() => {
+      animationRef.current = anim;
+      anim.start(({ finished }) => {
         if (!unmounted.current) {
           setAnimating(false);
-          onAnimationEnd();
+          if (finished) {
+            onAnimationEnd?.();
+          }
         }
       });
     },
     [duration, easing, heightAnim, onAnimationEnd]
   );
 
-  const toggleCollapsed = useCallback(
-    (isCollapsed: boolean) => {
-      if (isCollapsed) {
-        transitionToHeight(collapsedHeight);
-      } else if (measured) {
-        transitionToHeight(contentHeight);
-      } else {
-        measureContent((measuredHeight) => {
-          transitionToHeight(measuredHeight);
-        });
+  const measureContentFallback = useCallback(() => {
+    setMeasuring(true);
+    requestAnimationFrame(() => {
+      if (unmounted.current) return;
+      const node = contentRef.current;
+      if (!node) {
+        setMeasuring(false);
+        return;
       }
-    },
-    [
-      collapsedHeight,
-      contentHeight,
-      measured,
-      measureContent,
-      transitionToHeight,
-    ]
-  );
+
+      node.measure?.((_x, _y, _width, height) => {
+        if (unmounted.current) return;
+        setMeasuring(false);
+        if (height > 0) {
+          contentHeightRef.current = height;
+          setContentHeight(height);
+          measuredRef.current = true;
+          setMeasured(true);
+          if (!collapsed) {
+            transitionToHeight(height, true);
+          }
+        }
+      });
+    });
+  }, [collapsed, transitionToHeight]);
 
   useEffect(() => {
     if (logging) {
       console.log(`Collapsed (${name}) ::: ${collapsed}`);
     }
-    toggleCollapsed(collapsed);
-  }, [collapsed, logging, name, toggleCollapsed]);
+
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      if (collapsed) {
+        heightAnim.setValue(collapsedHeight);
+        return;
+      }
+      if (measuredRef.current && contentHeightRef.current > 0) {
+        heightAnim.setValue(contentHeightRef.current);
+        return;
+      }
+      measureContentFallback();
+      return;
+    }
+
+    if (collapsed) {
+      setMeasuring(false);
+      transitionToHeight(collapsedHeight, true);
+    } else if (measuredRef.current && contentHeightRef.current > 0) {
+      setMeasuring(false);
+      transitionToHeight(contentHeightRef.current, true);
+    } else {
+      measureContentFallback();
+    }
+  }, [
+    collapsed,
+    collapsedHeight,
+    heightAnim,
+    logging,
+    measureContentFallback,
+    name,
+    transitionToHeight,
+  ]);
 
   useEffect(() => {
     if (logging) {
@@ -214,25 +244,45 @@ export const Collapsible: React.FC<CollapsibleProps> = (props) => {
   useEffect(() => {
     return () => {
       unmounted.current = true;
+      if (animationRef.current) {
+        animationRef.current.stop();
+      }
     };
   }, []);
 
   const handleLayout = (event: LayoutChangeEvent) => {
-    const height = event.nativeEvent.layout.height;
+    const height = event?.nativeEvent?.layout?.height ?? 0;
     if (logging) {
       console.log(`Height (${name}) ::: ${height}`);
     }
-    if (animating || collapsed || measuring || contentHeight === height) {
+
+    if (height <= 0) {
       return;
     }
-    heightAnim.setValue(height);
+
+    const heightChanged = contentHeightRef.current !== height;
+    contentHeightRef.current = height;
     setContentHeight(height);
+    measuredRef.current = true;
+    setMeasured(true);
+
+    if (measuring) {
+      setMeasuring(false);
+      if (!collapsed) {
+        transitionToHeight(height, true);
+      }
+      return;
+    }
+
+    if (!collapsed && !animating && heightChanged) {
+      heightAnim.setValue(height);
+    }
   };
 
   const hasKnownHeight = !measuring && (measured || collapsed);
   const containerStyle: Animated.WithAnimatedObject<ViewStyle> = {
     overflow: 'hidden',
-    height: hasKnownHeight ? heightAnim : 0,
+    height: hasKnownHeight ? heightAnim : undefined,
   };
 
   const animatedContentStyle: Animated.WithAnimatedObject<ViewStyle> = {};
@@ -240,61 +290,49 @@ export const Collapsible: React.FC<CollapsibleProps> = (props) => {
     animatedContentStyle.position = 'absolute';
     animatedContentStyle.opacity = 0;
   } else if (align === 'center') {
+    const validHeight = contentHeight > 0 ? contentHeight : 1;
     animatedContentStyle.transform = [
       {
         translateY: heightAnim.interpolate({
-          inputRange: [0, contentHeight],
-          outputRange: [-contentHeight / 2, 0],
+          inputRange: [0, validHeight],
+          outputRange: [-validHeight / 2, 0],
         }),
       },
     ];
   } else if (align === 'bottom') {
+    const validHeight = contentHeight > 0 ? contentHeight : 1;
     animatedContentStyle.transform = [
       {
         translateY: heightAnim.interpolate({
-          inputRange: [0, contentHeight],
-          outputRange: [-contentHeight, 0],
+          inputRange: [0, validHeight],
+          outputRange: [-validHeight, 0],
         }),
       },
     ];
   }
 
-  if (animating) {
+  if (animating && contentHeight > 0) {
     animatedContentStyle.height = contentHeight;
   }
 
   const shouldRenderChildren =
-    renderChildrenCollapsed ||
-    ((!collapsed || (collapsed && animating)) &&
-      (animating || measuring || measured));
+    renderChildrenCollapsed || !collapsed || animating || measuring;
 
   return (
-    <>
+    <Animated.View
+      style={containerStyle}
+      pointerEvents={!enablePointerEvents && collapsed ? 'none' : 'auto'}
+    >
       <Animated.View
-        style={containerStyle}
-        pointerEvents={!enablePointerEvents && collapsed ? 'none' : 'auto'}
+        ref={(ref) => {
+          contentRef.current = ref as View | null;
+        }}
+        style={[style, animatedContentStyle]}
+        onLayout={handleLayout}
       >
-        <Animated.View
-          ref={(ref) => {
-            contentRef.current = ref as View | null;
-          }}
-          style={[style, animatedContentStyle]}
-          onLayout={(event) => {
-            if (!animating) {
-              if (logging) {
-                console.log(`Layout click (${name})`);
-                console.log(
-                  `Layout height (${name}) ::: ${JSON.stringify(event?.nativeEvent?.layout?.height)}`
-                );
-              }
-              handleLayout(event);
-            }
-          }}
-        >
-          {shouldRenderChildren && children}
-        </Animated.View>
+        {shouldRenderChildren && children}
       </Animated.View>
-    </>
+    </Animated.View>
   );
 };
 
