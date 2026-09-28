@@ -1,6 +1,6 @@
 {
-  "name": "@jkrmarmol/react-native-collapsible",
-  "version": "0.1.4",
+  "name": "@batazo/react-native-collapsible",
+  "version": "0.2.0",
   "description": "A simple and customizable React Native component for collapsible content, supporting smooth expand/collapse animations and accordion behavior.",
   "main": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",
@@ -32,7 +32,7 @@
     "!**/.*"
   ],
   "scripts": {
-    "example": "yarn workspace @jkrmarmol/react-native-collapsible-example",
+    "example": "yarn workspace @batazo/react-native-collapsible-example",
     "test": "jest",
     "typecheck": "tsc",
     "lint": "eslint \"**/*.{js,ts,tsx}\"",
@@ -47,14 +47,14 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jkrmarmol/react-native-collapsible.git"
+    "url": "git+https://github.com/batazo/react-native-collapsible.git"
   },
-  "author": "Kurt Russelle Marmol <jkurtrussellemarmol@gmail.com> (https://github.com/jkrmarmol)",
+  "author": "Z Bata <batazo.dad@gmail.com> (https://github.com/batazo)",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/jkrmarmol/react-native-collapsible/issues"
+    "url": "https://github.com/batazo/react-native-collapsible/issues"
   },
-  "homepage": "https://github.com/jkrmarmol/react-native-collapsible#readme",
+  "homepage": "https://github.com/batazo/react-native-collapsible#readme",
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",
     "access": "public"
