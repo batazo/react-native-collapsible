@@ -1,3 +1,7 @@
+# Fork from
+
+[jkrmarmol - react-native-collapsible](https://github.com/jkrmarmol/react-native-collapsible)
+
 # 📦 React Native Collapsible Component
 
 A simple and customizable React Native component for collapsible content, supporting smooth expand/collapse animations and accordion behavior.
@@ -15,9 +19,9 @@ Perfect for creating accordion UIs, toggle sections, or dynamically hiding/showi
 ## 📦 Installation
 
 ```bash
-npm install @jkrmarmol/react-native-collapsible
+npm install @batazo/react-native-collapsible
 # or
-yarn add @jkrmarmol/react-native-collapsible
+yarn add @batazo/react-native-collapsible
 ```
 
 ## 🚀 Usage
@@ -25,7 +29,7 @@ yarn add @jkrmarmol/react-native-collapsible
 ```js
 import React, { useState } from 'react';
 import { Text, Button, View } from 'react-native';
-import { Collapsible } from '@jkrmarmol/react-native-collapsible';
+import { Collapsible } from '@batazo/react-native-collapsible';
 
 const MyComponent = () => {
   const [collapsed, setCollapsed] = useState(true);
@@ -53,6 +57,8 @@ const MyComponent = () => {
 | `style`                   | `StyleProp<ViewStyle>`              | `undefined`      | Optional styling for the animated content container.                                                      |
 | `enablePointerEvents`     | `boolean`                           | `false`          | If false, disables pointer events when collapsed.                                                         |
 | `children`                | `ReactNode`                         | -                | The content to show/hide.                                                                                 |
+| `name`                    | `string`                            | `'N/A'`          | Name of Collapsible component                                                                             |
+| `logging`                 | `boolean`                           | `false`          | State logging with name                                                                                   |
 
 ## 🧪 Examples
 
@@ -92,4 +98,4 @@ PRs, issues, and feature requests are welcome! If you like this library, conside
 
 ## 📝 License
 
-MIT License © 2025 [Kurt Russelle Marmol](https://github.com/jkrmarmol)
+MIT License © 2026 [Z Bata](https://github.com/batazo)
